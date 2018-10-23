@@ -1,4 +1,4 @@
-# Barebones-WebRTC-Oneway-Video
+# Basic-WebRTC-2018
 
 ## Purpose
 
