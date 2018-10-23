@@ -1,14 +1,20 @@
 'use strict';
 
-const requestStreamButton = document.getElementById('requestStream');
+const startStreamButton = document.getElementById('startStream');
+const sendStreamButton = document.getElementById('sendStream');
 const endStreamButton = document.getElementById('endStream');
 
 const streamingVideo = document.getElementById('streamingVideo');
 const viewerVideo = document.getElementById('viewerVideo');
 
-requestStreamButton.onclick = setUpStream;
+startStreamButton.onclick = setUpStream;
+sendStreamButton.onclick = startStream;
+endStreamButton.onclick = endStream;
 
+// PC_CONFIG is where any STUN or TURN servers would be listed
 const PC_CONFIG = null;
+
+// mediaStreamConstraints describes the media that will be streamed
 const mediaStreamConstraints = {
   audio: false,
   video: { width: 640, height: 480 }
@@ -19,14 +25,11 @@ let viewerPC;
 let localStream;
 
 function setUpStream() {
-  console.log('media constraints ', mediaStreamConstraints);
-  createPeerConnectionStreamer();
+  createStreamerPeerConnection();
+  createViewerPeerConnection();
   navigator.mediaDevices
     .getUserMedia(mediaStreamConstraints)
     .then(gotLocalMediaStream)
-    .then(() => {
-      startStream();
-    })
     .catch(handleLocalMediaStreamError);
 }
 
@@ -34,7 +37,6 @@ function gotLocalMediaStream(mediaStream) {
   localStream = mediaStream;
   streamingVideo.srcObject = mediaStream;
   mediaStream.getTracks().forEach(t => streamerPC.addTrack(t, mediaStream));
-  console.log('localVideo ', streamerPC);
 }
 
 function handleLocalMediaStreamError(error) {
@@ -48,41 +50,107 @@ function startStream() {
       return streamerPC.setLocalDescription(offer);
     })
     .then(() => {
-      console.log('local description', streamerPC.localDescription);
+      console.log('streamer pc ', streamerPC.localDescription);
+      console.log('viewer pc ', viewerPC);
+      setUpViewer(streamerPC.localDescription);
     })
     .catch(e => {
       console.log('error recipient set up ', e);
     });
 }
 
-function createPeerConnectionStreamer() {
+function setUpViewer(sdp) {
+  viewerPC.setRemoteDescription(sdp);
+  viewerPC
+    .createAnswer()
+    .then(answer => {
+      return viewerPC.setLocalDescription(answer);
+    })
+    .then(() => {
+      return streamerPC.setRemoteDescription(viewerPC.localDescription);
+    });
+  console.log('viewer pc ', viewerPC);
+}
+
+function createStreamerPeerConnection() {
   try {
     streamerPC = new RTCPeerConnection();
-    streamerPC.onicecandidate = handleIceCandidate;
-    streamerPC.ontrack = handleRemoteStreamAdded;
-    streamerPC.onremovetrack = handleRemoteStreamRemoved;
-    streamerPC.oniceconnectionstatechange = handleIceStateChange;
+    streamerPC.onicecandidate = handleIceCandidateStreamer;
+    streamerPC.ontrack = handleRemoteStreamAddedStreamer;
+    streamerPC.onremovetrack = handleRemoteStreamRemovedStreamer;
+    streamerPC.oniceconnectionstatechange = handleIceStateChangeStreamer;
     console.log('Created RTCPeerConnection', streamerPC.localDescription);
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ', e.message);
   }
 }
 
-function handleIceCandidate(event) {
-  console.log('icecandidate event ', event);
+function createViewerPeerConnection() {
+  try {
+    viewerPC = new RTCPeerConnection();
+    viewerPC.onicecandidate = handleIceCandidateViewer;
+    viewerPC.ontrack = handleRemoteStreamAddedViewer;
+    viewerPC.onremovetrack = handleRemoteStreamRemovedViewer;
+    viewerPC.oniceconnectionstatechange = handleIceStateChangeViewer;
+    console.log('Created RTCPeerConnection', viewerPC.localDescription);
+  } catch (e) {
+    console.log('Failed to create PeerConnection, exception: ', e.message);
+  }
 }
 
-function handleRemoteStreamAdded(e) {
+function handleIceCandidateStreamer(event) {
+  console.log('icecandidate event streamer', event);
+}
+
+function handleIceCandidateViewer(event) {
+  console.log('icecandidate event viewer', event);
+}
+
+function handleRemoteStreamAddedStreamer(e) {
   const mediaStream = e.streams[0];
   streamingVideo.srcObject = mediaStream;
   console.log('track running ', streamingVideo.srcObject);
 }
 
-function handleRemoteStreamRemoved(event) {
+function handleRemoteStreamAddedViewer(e) {
+  const mediaStream = e.streams[0];
+  viewerVideo.srcObject = mediaStream;
+  console.log('track running ', streamingVideo.srcObject);
+}
+
+function handleRemoteStreamRemovedStreamer(event) {
   console.log('Remote stream removed ', event);
   streamingVideo.srcObject = null;
 }
 
-function handleIceStateChange() {
-  console.log('Ice state change ', viewerPC.iceConnectionState);
+function handleRemoteStreamRemovedViewer(event) {
+  console.log('Remote stream removed ', event);
+  viewerVideo.srcObject = null;
+}
+
+function handleIceStateChangeStreamer() {
+  if (streamerPC) {
+    console.log('Ice state change streamer', streamerPC.iceConnectionState);
+  } else {
+    console.log('connection ended');
+  }
+}
+
+function handleIceStateChangeViewer() {
+  if (viewerPC) {
+    console.log('Ice state change viewer', viewerPC.iceConnectionState);
+  } else {
+    console.log('connection ended');
+  }
+}
+
+function endStream() {
+  viewerPC.close();
+  streamerPC.close();
+  const tracks = streamingVideo.srcObject.getTracks();
+  tracks.forEach(track => track.stop());
+  streamingVideo.srcObject = null;
+  viewerVideo.srcObject = null;
+  streamerPC = null;
+  viewerPC = null;
 }
