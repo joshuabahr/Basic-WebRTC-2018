@@ -22,7 +22,6 @@ const mediaStreamConstraints = {
 
 let streamerPC;
 let viewerPC;
-let localStream;
 
 function setUpStream() {
   createStreamerPeerConnection();
@@ -34,7 +33,6 @@ function setUpStream() {
 }
 
 function gotLocalMediaStream(mediaStream) {
-  localStream = mediaStream;
   streamingVideo.srcObject = mediaStream;
   mediaStream.getTracks().forEach(t => streamerPC.addTrack(t, mediaStream));
 }
