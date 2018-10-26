@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Basic WebRTC 2018 - One-way Video Stream</title>
+</head>
+
+<body>
+  <div>
+    <button id="startStream">Start Stream</button>
+    <button id="sendStream">Send Stream</button>
+    <button id="endStream">End Stream</button>
+    <div>
+      <h4>Streamer video</h4>
+      <video id="streamingVideo" playsinline autoplay muted></video>
+    </div>
+    <div>
+      <h4>Viewer video</h4>
+      <video id="viewerVideo" playsinline autoplay muted></video>
+    </div>
+  </div>
+  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+  <script src="main.js"></script>
+</body>
+
+</html>
