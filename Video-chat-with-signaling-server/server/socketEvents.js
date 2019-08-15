@@ -1,52 +1,47 @@
 const socketEvents = io => {
-  io.on('connect', socket => {
-    console.log('socket connected ', socket.connected);
+  io.on("connect", socket => {
+    console.log("socket connected ", socket.connected);
 
     const users = [];
     const room = 1;
 
-    socket.on('enterroom', () => {
+    socket.on("enterroom", () => {
       socket.join(room);
       if (users.length > 1) {
-        socket.emit('roomFilled', 'too many users');
+        socket.emit("roomFilled", "too many users");
         socket.leave(room);
       } else {
         users.push(socket.id);
-        console.log('entered video chat ', users);
+        console.log("entered video chat ", users);
       }
     });
 
-    socket.on('leavestream', cam => {
-      socket.leave(cam.id);
-      console.log('leaving stream ', cam);
+    socket.on("localdescription", details => {
+      socket.broadcast.to(room).emit("localdescription", details);
+      console.log("localdescription");
     });
 
-    socket.on('streamerdescription', details => {
-      socket.broadcast.to(details.cam.id).emit('streamerdescription', details.sdp);
-      console.log('streamer description ', details.cam.id);
+    socket.on("streamerdescription", details => {
+      socket.broadcast.to(room).emit("streamerdescription", details);
+      console.log("streamer description ", room);
     });
 
-    socket.on('recipientdescription', details => {
-      socket.broadcast.to(details.cam.id).emit('recipientdescription', details.sdp);
-      console.log('recipient description ', details.sdp);
+    socket.on("recipientdescription", details => {
+      socket.broadcast.to(room).emit("recipientdescription", details);
+      console.log("recipient description ", details);
     });
 
-    socket.on('icecandidate', details => {
-      socket.broadcast.to(details.cam.id).emit('newice', details);
+    socket.on("icecandidate", details => {
+      socket.broadcast.to(room).emit("newice", details);
     });
 
-    socket.on('closestream', cam => {
-      socket.broadcast.to(cam.id).emit('closestream', cam);
-      console.log('stream closed ', cam);
+    socket.on("closestream", () => {
+      socket.broadcast.to(room).emit("closestream");
+      console.log("stream closed ");
     });
 
-    socket.on('remoteclosestream', cam => {
-      socket.broadcast.to(cam.id).emit('remoteclosestream', cam);
-      console.log('stream remotely closed ', cam);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('socket disconnected ', socket.connected);
+    socket.on("disconnect", () => {
+      console.log("socket disconnected ", socket.connected);
     });
   });
 };
