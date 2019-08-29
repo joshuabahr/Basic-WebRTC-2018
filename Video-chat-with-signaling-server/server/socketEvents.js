@@ -21,18 +21,9 @@ const socketEvents = io => {
       console.log("localdescription");
     });
 
-    socket.on("streamerdescription", details => {
-      socket.broadcast.to(room).emit("streamerdescription", details);
-      console.log("streamer description ", room);
-    });
-
-    socket.on("recipientdescription", details => {
-      socket.broadcast.to(room).emit("recipientdescription", details);
-      console.log("recipient description ", details);
-    });
-
     socket.on("icecandidate", details => {
       socket.broadcast.to(room).emit("newice", details);
+      console.log("new ice candidate", details);
     });
 
     socket.on("closestream", () => {
